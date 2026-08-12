@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Binary Option Trading</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; user-select:none; }
+  html, body { height:100%; background:#151a26; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color:#fff; overflow:hidden; }
+  #app { max-width:480px; margin:0 auto; height:100vh; display:flex; flex-direction:column; background:#151a26; position:relative; }
+
+  .topbar { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:#151a26; z-index:5; }
+  .maintenance-banner { display:none; align-items:center; gap:8px; background:#3a2410; border-bottom:1px solid #e8b93b; color:#f5d47a; font-size:12px; padding:9px 14px; }
+  .maintenance-banner.show { display:flex; }
+  .topbar-left { display:flex; align-items:center; gap:14px; }
+  .hamburger { width:22px; display:flex; flex-direction:column; gap:5px; cursor:pointer; }
+  .hamburger span { display:block; height:2px; background:#9aa3b5; border-radius:2px; }
+  .logo { width:26px; height:26px; background:linear-gradient(135deg,#2f6fed,#1450c9); clip-path:polygon(60% 0%,100% 0%,40% 100%,0% 100%,20% 55%,0% 55%); cursor:pointer; }
+  .topbar-right { display:flex; align-items:center; gap:10px; }
+  .account-info { text-align:right; display:flex; align-items:center; gap:6px; cursor:pointer; }
+  .account-label { font-size:11px; color:#8b93a7; display:flex; align-items:center; gap:3px; justify-content:flex-end; }
+  .account-balance { font-size:15px; font-weight:700; color:#fff; }
+  .chevron-down { font-size:9px; color:#8b93a7; }
+  .icon-btn { width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; border:1px solid #2c3345; color:#9aa3b5; cursor:pointer; background:transparent; transition:transform .3s; }
+  .icon-btn.filled { background:#2f6fed; border-color:#2f6fed; color:#fff; }
+  .avatar { width:34px; height:34px; border-radius:50%; background:#3a4258; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#cfd4e0; position:relative; cursor:pointer; }
+  .avatar .dot { position:absolute; top:-1px; right:-1px; width:9px; height:9px; border-radius:50%; background:#f0654a; border:2px solid #151a26; }
+
+  .pair-bar { padding:10px 14px 6px; }
+  .pair-chip { display:inline-flex; align-items:center; gap:8px; background:#20263a; border-radius:10px; padding:8px 14px 8px 8px; color:#c6cbdb; font-size:14px; font-weight:600; cursor:pointer; }
+  .pair-chip .arrow { color:#7c8496; font-size:16px; margin-right:2px; }
+  .pair-icons { display:flex; }
+  .coin-icon { width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; margin-left:-6px; border:1.5px solid #20263a; }
+  .coin-icon:first-child { margin-left:0; }
+  .coin-btc { background:#f7931a; color:#fff; }
+  .coin-eth { background:#8a92b2; color:#151a26; }
+  .payout { color:#26a969; }
+
+  .chart-wrap { flex:1; position:relative; min-height:0; }
+  #chartCanvas { display:block; width:100%; height:100%; }
+  .countdown-badge { position:absolute; top:14px; width:44px; height:44px; border-radius:50%; border:2px solid #454e63; display:flex; align-items:center; justify-content:center; font-size:12px; color:#cfd4e0; font-weight:600; background:rgba(21,26,38,0.6); }
+  .expiry-badge { position:absolute; top:14px; width:44px; height:44px; border-radius:50%; border:2px solid #f0654a; display:flex; align-items:center; justify-content:center; font-size:16px; color:#f0654a; font-weight:700; background:rgba(21,26,38,0.6); cursor:pointer; }
+  .price-tag { position:absolute; background:#fff; color:#151a26; font-size:12px; font-weight:700; padding:5px 10px; border-radius:3px; white-space:nowrap; pointer-events:none; max-width:calc(100% - 8px); }
+  .zoom-controls { position:absolute; bottom:44px; right:12px; display:flex; background:#20263a; border-radius:8px; overflow:hidden; }
+  .zoom-controls button { width:36px; height:32px; background:transparent; border:none; color:#cfd4e0; font-size:18px; cursor:pointer; }
+  .zoom-controls button:first-child { border-right:1px solid #2c3345; }
+  .tools-row { position:absolute; bottom:44px; left:12px; display:flex; gap:8px; }
+  .tool-chip { background:#20263a; border-radius:8px; padding:8px 12px; font-size:12px; color:#c6cbdb; font-weight:600; display:flex; align-items:center; gap:4px; cursor:pointer; }
+  .tool-chip.active-tool { background:#2f6fed; color:#fff; }
+  .time-axis { position:absolute; bottom:16px; left:0; right:0; display:flex; justify-content:space-between; padding:0 12px; font-size:11px; color:#5c6478; pointer-events:none; }
+
+  .subinfo { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; font-size:12px; color:#8b93a7; border-top:1px solid #20263a; }
+  .subinfo a { color:#2f6fed; text-decoration:underline; cursor:pointer; }
+
+  .trade-panel { padding:10px 14px 6px; }
+  .stepper-row { display:flex; gap:10px; margin-bottom:12px; }
+  .stepper { flex:1; background:#20263a; border-radius:10px; display:flex; align-items:center; justify-content:space-between; padding:10px 6px; }
+  .stepper button { width:30px; height:30px; border-radius:6px; background:transparent; border:none; color:#8b93a7; font-size:20px; cursor:pointer; }
+  .stepper button:active { background:rgba(255,255,255,0.08); }
+  .stepper-center { text-align:center; flex:1; }
+  .stepper-label { font-size:11px; color:#8b93a7; }
+  .stepper-value { font-size:15px; font-weight:700; color:#fff; }
+  .earnings-row { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:12px; font-size:14px; color:#8b93a7; }
+  .earnings-pct { color:#26a969; font-weight:700; }
+  .earnings-amt { color:#fff; font-weight:700; font-size:16px; }
+  .action-row { display:flex; gap:12px; margin-bottom:10px; }
+  .btn-trade { flex:1; height:56px; border-radius:12px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:22px; color:#fff; transition:transform .1s, filter .15s, opacity .2s; }
+  .btn-trade:active { transform:scale(0.97); filter:brightness(0.9); }
+  .btn-trade:disabled { opacity:0.5; cursor:not-allowed; }
+  .btn-up { background:#26a969; }
+  .btn-down { background:#f0654a; }
+
+  .bottom-nav { display:flex; justify-content:space-around; align-items:center; padding:10px 0 12px; border-top:1px solid #20263a; }
+  .nav-item { position:relative; color:#8b93a7; cursor:pointer; display:flex; align-items:center; justify-content:center; width:36px; height:36px; }
+  .nav-item.active { color:#2f6fed; }
+  .nav-item svg { width:22px; height:22px; }
+  .nav-dot { position:absolute; top:2px; right:4px; width:7px; height:7px; border-radius:50%; background:#f0654a; border:1.5px solid #151a26; }
+
+  .toast { position:absolute; left:50%; top:20px; transform:translateX(-50%); background:#20263a; color:#fff; padding:10px 18px; border-radius:8px; font-size:13px; font-weight:600; z-index:60; box-shadow:0 6px 20px rgba(0,0,0,0.4); opacity:0; pointer-events:none; transition:opacity .3s, transform .3s; max-width:80%; text-align:center; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(6px); }
+  .toast.win { border-left:4px solid #26a969; }
+  .toast.lose { border-left:4px solid #f0654a; }
+
+  .overlay { position:absolute; inset:0; background:rgba(0,0,0,0.55); z-index:40; display:none; }
+  .overlay.show { display:block; }
+
+  .drawer { position:absolute; top:0; left:0; bottom:0; width:78%; max-width:320px; background:#1a2033; z-index:45; transform:translateX(-100%); transition:transform .25s; padding:18px 16px; overflow-y:auto; }
+  .drawer.show { transform:translateX(0); }
+  .drawer h3 { font-size:15px; margin-bottom:14px; color:#fff; }
+  .drawer-item { display:flex; align-items:center; gap:12px; padding:12px 6px; color:#c6cbdb; font-size:14px; cursor:pointer; border-bottom:1px solid #20263a; }
+  .drawer-item:active { background:rgba(255,255,255,0.05); }
+
+  .sheet { position:absolute; left:0; right:0; bottom:0; max-width:480px; margin:0 auto; background:#1a2033; z-index:45; border-radius:16px 16px 0 0; transform:translateY(100%); transition:transform .25s; padding:16px; max-height:70%; overflow-y:auto; }
+  .sheet.show { transform:translateY(0); }
+  .sheet-handle { width:36px; height:4px; background:#3a4258; border-radius:2px; margin:0 auto 14px; }
+  .sheet h3 { font-size:15px; margin-bottom:12px; color:#fff; }
+  .pair-option { display:flex; align-items:center; justify-content:space-between; padding:12px 8px; border-bottom:1px solid #20263a; cursor:pointer; }
+  .pair-option:active { background:rgba(255,255,255,0.05); }
+  .pair-option-left { display:flex; align-items:center; gap:10px; font-size:14px; color:#fff; }
+  .pair-option .payout-val { color:#26a969; font-weight:700; font-size:14px; }
+  .pair-option.selected { background:rgba(47,111,237,0.12); border-radius:8px; }
+
+  .account-sheet-item { display:flex; align-items:center; justify-content:space-between; padding:14px 10px; border-radius:10px; margin-bottom:8px; cursor:pointer; background:#20263a; }
+  .account-sheet-item.selected { border:1.5px solid #2f6fed; }
+  .sheet-subtitle { font-size:12px; color:#8b93a7; margin:2px 0 8px; }
+  .login-input { width:100%; background:#20263a; border:1px solid #2c3345; border-radius:10px; padding:12px 14px; color:#fff; font-size:14px; margin-bottom:10px; }
+  .login-input::placeholder { color:#5c6478; }
+  .login-tabs { display:flex; gap:8px; margin-bottom:16px; }
+  .login-tab { flex:1; text-align:center; padding:10px; border-radius:10px; background:#20263a; border:1.5px solid #2c3345; color:#8b93a7; font-size:13px; font-weight:700; cursor:pointer; }
+  .login-tab.selected { background:rgba(47,111,237,0.12); color:#fff; border-color:#2f6fed; }
+  .login-error { min-height:16px; font-size:12px; color:#f0654a; margin:2px 0 8px; }
+  .login-error.info { color:#26a969; }
+  .logged-in-box { background:#20263a; border-radius:10px; padding:12px 14px; margin-bottom:14px; }
+  .logged-in-box .label { font-size:11px; color:#8b93a7; margin-bottom:3px; }
+  .logged-in-box .value { font-size:14px; font-weight:700; }
+  .currency-toggle { display:flex; gap:8px; margin-bottom:16px; }
+  .currency-toggle-btn { flex:1; text-align:center; padding:11px; border-radius:10px; background:#20263a; border:1.5px solid #2c3345; color:#8b93a7; font-size:13px; font-weight:700; cursor:pointer; }
+  .currency-toggle-btn.selected { background:rgba(47,111,237,0.12); color:#fff; border-color:#2f6fed; }
+  .acc-type { font-size:14px; font-weight:600; color:#fff; }
+  .acc-bal { font-size:13px; color:#8b93a7; }
+
+  .history-item { display:flex; justify-content:space-between; align-items:center; padding:12px 8px; border-bottom:1px solid #20263a; font-size:13px; }
+  .history-left { display:flex; flex-direction:column; gap:3px; }
+  .history-pair { color:#fff; font-weight:600; }
+  .history-meta { color:#8b93a7; font-size:11px; }
+  .history-result { font-weight:700; font-size:14px; }
+  .history-result.win { color:#26a969; }
+  .history-result.lose { color:#f0654a; }
+  .history-result.pending { color:#e8b93b; }
+
+  .empty-state { text-align:center; color:#5c6478; font-size:13px; padding:30px 10px; }
+
+  .deposit-input { width:100%; background:#20263a; border:1px solid #2c3345; border-radius:10px; padding:12px; color:#fff; font-size:16px; margin:10px 0; }
+  .deposit-btn { width:100%; background:#2f6fed; color:#fff; border:none; padding:14px; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; }
+
+  .settings-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 4px; border-bottom:1px solid #20263a; }
+  .settings-row-title { font-size:14px; color:#fff; font-weight:600; }
+  .settings-row-desc { font-size:12px; color:#8b93a7; margin-top:2px; }
+  .switch { width:44px; height:26px; border-radius:13px; background:#2c3345; position:relative; cursor:pointer; flex-shrink:0; transition:background .2s; }
+  .switch.on { background:#2f6fed; }
+  .switch-knob { position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .2s; }
+  .switch.on .switch-knob { transform:translateX(18px); }
+
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="maintenance-banner" id="maintenanceBanner">🔧&nbsp;<span id="maintenanceMsg">Aplikasi sedang dalam perbaikan. Trading sementara dinonaktifkan.</span></div>
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="hamburger" id="hamburgerBtn"><span></span><span></span><span></span></div>
+      <div class="logo" id="logoBtn"></div>
+    </div>
+    <div class="topbar-right">
+      <div class="account-info" id="accountInfoBtn">
+        <div class="account-text">
+          <div class="account-label">Akun <span id="accTypeLabel">demo</span> <span class="chevron-down">▾</span></div>
+          <div class="account-balance"><span class="cur-symbol">Rp</span><span id="balanceTop">9.999.920</span></div>
+        </div>
+      </div>
+      <button class="icon-btn" id="refreshBtn" title="Refresh">⟳</button>
+      <button class="icon-btn filled" id="walletBtn" title="Dompet">🗂</button>
+      <div class="avatar" id="avatarBtn">ADP<span class="dot" id="avatarDot"></span></div>
+    </div>
+  </div>
+
+  <div class="pair-bar">
+    <div class="pair-chip" id="pairChipBtn">
+      <span class="arrow">‹</span>
+      <span class="pair-icons" id="pairIcons">
+        <span class="coin-icon coin-btc">₿</span>
+        <span class="coin-icon coin-eth">Ξ</span>
+      </span>
+      <span id="pairName">Crypto IDX</span>&nbsp;<span class="payout" id="payoutPct">82%</span>
+    </div>
+  </div>
+
+  <div class="chart-wrap" id="chartWrap">
+    <canvas id="chartCanvas"></canvas>
+    <div class="countdown-badge" id="countdownBadge">:12</div>
+    <div class="expiry-badge" id="expiryBadge" title="Perdagangan aktif">⚑</div>
+    <div class="price-tag" id="priceTag">641.8673459067</div>
+
+    <div class="tools-row">
+      <div class="tool-chip" id="tfChip">5s</div>
+      <div class="tool-chip" id="settingsChip">⚙</div>
+      <div class="tool-chip" id="drawChip">◺</div>
+    </div>
+    <div class="zoom-controls">
+      <button id="zoomOut">−</button>
+      <button id="zoomIn">+</button>
+    </div>
+    <div class="time-axis" id="timeAxis"></div>
+  </div>
+
+  <div class="subinfo">
+    <span id="serverTime">17:46:16 GMT+7</span>
+    <a id="openTradesLink">Lihat perdagangan dibuka (<span id="openTradesCount">0</span>)</a>
+  </div>
+
+  <div class="trade-panel">
+    <div class="stepper-row">
+      <div class="stepper">
+        <button id="waktuMinus">−</button>
+        <div class="stepper-center">
+          <div class="stepper-label">Waktu</div>
+          <div class="stepper-value" id="waktuValue">17:47</div>
+        </div>
+        <button id="waktuPlus">+</button>
+      </div>
+      <div class="stepper">
+        <button id="jumlahMinus">−</button>
+        <div class="stepper-center">
+          <div class="stepper-label">Jumlah</div>
+          <div class="stepper-value"><span class="cur-symbol">Rp</span><span id="jumlahValue">10.000</span></div>
+        </div>
+        <button id="jumlahPlus">+</button>
+      </div>
+    </div>
+
+    <div class="earnings-row">
+      <span>Pendapatan <span class="earnings-pct" id="earningsPct">+82%</span></span>
+      <span class="earnings-amt"><span class="cur-symbol">Rp</span><span id="earningsAmt">8.800</span></span>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-trade btn-up" id="btnUp">↑</button>
+      <button class="btn-trade btn-down" id="btnDown">↓</button>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item active" id="navChart" title="Chart">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-8"/><path d="M15 8h5v5"/></svg>
+    </div>
+    <div class="nav-item" id="navAssets" title="Aset">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span class="nav-dot" id="assetsDot" style="display:none;"></span>
+    </div>
+    <div class="nav-item" id="navHistory" title="Riwayat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+    </div>
+    <div class="nav-item" id="navWallet" title="Dompet">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+      <span class="nav-dot" id="walletDot" style="display:none;"></span>
+    </div>
+    <div class="nav-item" id="navProfile" title="Profil">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="9" r="3"/><circle cx="17" cy="10" r="2.5"/><path d="M2 20c0-3 3-5 6-5s6 2 6 5"/><path d="M14 20c0-2 2-4 5-4s4 2 4 4"/></svg>
+      <span class="nav-dot"></span>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="overlay" id="overlay"></div>
+
+  <div class="drawer" id="drawer">
+    <h3>Menu</h3>
+    <div class="drawer-item" id="menuHome">🏠&nbsp;&nbsp;Beranda</div>
+    <div class="drawer-item" id="menuHistory2">🕐&nbsp;&nbsp;Riwayat Perdagangan</div>
+    <div class="drawer-item" id="menuWallet2">💳&nbsp;&nbsp;Dompet</div>
+    <div class="drawer-item" id="menuSettings2">⚙️&nbsp;&nbsp;Pengaturan</div>
+    <div class="drawer-item" id="menuReset">🔄&nbsp;&nbsp;Reset Akun Demo</div>
+    <div class="drawer-item" id="menuLoginItem">🔑&nbsp;&nbsp;Masuk / Daftar (Nomor HP)</div>
+    <div class="drawer-item" id="menuAbout" style="border-bottom:none;">ℹ️&nbsp;&nbsp;Tentang Aplikasi</div>
+  </div>
+
+  <div class="sheet" id="pairSheet">
+    <div class="sheet-handle"></div>
+    <h3>Pilih Aset</h3>
+    <div id="pairList"></div>
+  </div>
+
+  <div class="sheet" id="loginSheet">
+    <div class="sheet-handle"></div>
+    <h3>Masuk / Daftar</h3>
+
+    <div id="loggedInBox" style="display:none;">
+      <div class="logged-in-box">
+        <div class="label">Masuk sebagai</div>
+        <div class="value" id="loggedInPhone">-</div>
+      </div>
+      <button class="deposit-btn" id="phoneLogoutBtn" style="background:#f0654a;">Keluar dari Nomor HP Ini</button>
+    </div>
+
+    <div id="loginFormBox">
+      <div class="sheet-subtitle">Progres kamu tersimpan otomatis di perangkat ini. Masuk pakai nomor HP supaya bisa dilanjutkan dari perangkat lain — tanpa OTP, cukup nomor &amp; kata sandi.</div>
+      <div class="login-tabs">
+        <div class="login-tab selected" id="loginTabIn">Masuk</div>
+        <div class="login-tab" id="loginTabUp">Daftar</div>
+      </div>
+      <input type="text" class="login-input" id="loginName" placeholder="Nama lengkap" style="display:none;">
+      <input type="tel" class="login-input" id="loginPhone" placeholder="Nomor HP (contoh: 081234567890)">
+      <input type="password" class="login-input" id="loginPassword" placeholder="Kata sandi (min. 6 karakter)">
+      <div class="login-error" id="loginError"></div>
+      <button class="deposit-btn" id="loginSubmitBtn">Masuk</button>
+    </div>
+  </div>
+
+  <div class="sheet" id="accountSheet">
+    <div class="sheet-handle"></div>
+    <h3>Pilih Akun</h3>
+
+    <div class="sheet-subtitle">Akun</div>
+    <div id="acctLoginStatusIn" style="display:none;">
+      <div class="logged-in-box">
+        <div class="label">Masuk sebagai</div>
+        <div class="value" id="acctLoginPhone">-</div>
+      </div>
+      <button class="deposit-btn" id="acctLogoutBtn" style="background:#f0654a; margin-bottom:16px;">Keluar (Logout)</button>
+    </div>
+    <div id="acctLoginStatusOut" style="margin-bottom:16px;">
+      <button class="deposit-btn" id="acctGoLoginBtn">🔑 Masuk / Daftar dengan Nomor HP</button>
+    </div>
+
+    <div class="sheet-subtitle">Mata Uang</div>
+    <div class="currency-toggle">
+      <div class="currency-toggle-btn selected" id="curIdrOpt">Rupiah (Rp)</div>
+      <div class="currency-toggle-btn" id="curUscOpt">Dolar-Cent ($)</div>
+    </div>
+
+    <div class="sheet-subtitle">Jenis Akun</div>
+    <div class="account-sheet-item selected" id="accDemoOpt">
+      <div><div class="acc-type">Akun Demo</div><div class="acc-bal">Saldo latihan</div></div>
+      <div class="acc-bal"><span class="cur-symbol">Rp</span><span id="accDemoBal">9.999.920</span></div>
+    </div>
+    <div class="account-sheet-item" id="accRealOpt">
+      <div><div class="acc-type">Akun Real</div><div class="acc-bal">Saldo sungguhan</div></div>
+      <div class="acc-bal"><span class="cur-symbol">Rp</span><span id="accRealBal">0</span></div>
+    </div>
+  </div>
+
+  <div class="sheet" id="historySheet" style="max-height:80%;">
+    <div class="sheet-handle"></div>
+    <h3>Riwayat Perdagangan</h3>
+    <div id="historyList"><div class="empty-state">Belum ada transaksi</div></div>
+  </div>
+
+  <div class="sheet" id="walletSheet">
+    <div class="sheet-handle"></div>
+    <h3 id="walletTitle">Dompet — Deposit Demo</h3>
+    <div class="acc-bal">Saldo saat ini: <span class="cur-symbol">Rp</span><span id="walletCurBal">9.999.920</span></div>
+    <input type="number" class="deposit-input" id="depositInput" placeholder="Jumlah deposit (Rp)" value="100000" step="10000">
+    <button class="deposit-btn" id="depositConfirm">Tambah Saldo</button>
+  </div>
+
+  <div class="sheet" id="tfSheet">
+    <div class="sheet-handle"></div>
+    <h3>Pilih Timeframe</h3>
+    <div id="tfList"></div>
+  </div>
+
+  <div class="sheet" id="settingsSheet">
+    <div class="sheet-handle"></div>
+    <h3>Pengaturan Aplikasi</h3>
+
+    <div class="settings-row">
+      <div class="settings-row-text">
+        <div class="settings-row-title">Konfirmasi sebelum trade</div>
+        <div class="settings-row-desc">Tampilkan konfirmasi sebelum eksekusi Naik/Turun</div>
+      </div>
+      <div class="switch" id="toggleConfirmTrade"><div class="switch-knob"></div></div>
+    </div>
+
+    <div class="settings-row">
+      <div class="settings-row-text">
+        <div class="settings-row-title">Getar (vibrate)</div>
+        <div class="settings-row-desc">Getar singkat saat trade dieksekusi</div>
+      </div>
+      <div class="switch" id="toggleVibrate"><div class="switch-knob"></div></div>
+    </div>
+
+    <div class="settings-row" style="cursor:pointer;" id="accountIdRow">
+      <div class="settings-row-text">
+        <div class="settings-row-title">ID Akun</div>
+        <div class="settings-row-desc" id="accountIdDesc">Memuat...</div>
+        <div class="settings-row-desc" id="accountIdFull" style="font-size:10px; word-break:break-all;"></div>
+      </div>
+      <div style="font-size:11px; color:#2f6fed;">Salin</div>
+    </div>
+
+    <div class="settings-row" id="menuResetSettings" style="cursor:pointer;">
+      <div class="settings-row-text">
+        <div class="settings-row-title">Reset Akun Demo</div>
+        <div class="settings-row-desc">Kembalikan saldo demo pada mata uang aktif ke nilai awal</div>
+      </div>
+    </div>
+
+    <div class="settings-row" id="menuResetProgress" style="cursor:pointer;">
+      <div class="settings-row-text">
+        <div class="settings-row-title" style="color:#f0654a;">Hapus Semua Progres</div>
+        <div class="settings-row-desc">Reset saldo, riwayat, dan pengaturan di perangkat ini</div>
+      </div>
+    </div>
+
+    <div class="settings-row" style="border-bottom:none;">
+      <div class="settings-row-text">
+        <div class="settings-row-title">Versi Aplikasi</div>
+        <div class="settings-row-desc">Binary Option Trading Demo v1.0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sheet" id="confirmTradeSheet">
+    <div class="sheet-handle"></div>
+    <h3 id="confirmTradeTitle">Konfirmasi Trade</h3>
+    <div class="acc-bal" id="confirmTradeDesc" style="margin-bottom:16px;"></div>
+    <div class="action-row">
+      <button class="btn-trade" id="confirmTradeCancel" style="background:#2c3345; font-size:14px;">Batal</button>
+      <button class="btn-trade" id="confirmTradeOk" style="background:#2f6fed; font-size:14px;">Konfirmasi</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-analytics.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged, EmailAuthProvider, linkWithCredential, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+  import { initializeFirestore, doc, getDoc, setDoc, updateDoc, runTransaction, deleteField, onSnapshot } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDR9DF5Ee2G9ttmyom6IlLeYrhSjLoJcW0",
+    authDomain: "database-m-af977.firebaseapp.com",
+    databaseURL: "https://database-m-af977-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "database-m-af977",
+    storageBucket: "database-m-af977.firebasestorage.app",
+    messagingSenderId: "613630938721",
+    appId: "1:613630938721:web:409460b18e8f364ebd2420",
+    measurementId: "G-0WK52DZ0ZJ"
+  };
+
+  const fbApp = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(fbApp);
+  const auth = getAuth(fbApp);
+  // experimentalAutoDetectLongPolling menghindari "AbortError: The user aborted a request"
+  // yang muncul saat koneksi streaming Firestore diblokir oleh jaringan/extension browser.
+  const dbFs = initializeFirestore(fbApp, {
+    experimentalAutoDetectLongPolling: true,
+    useFetchStreams: false
+  });
+  const BINARY_COLLECTION = 'binary';
+
+(function(){
+  const canvas = document.getElementById('chartCanvas');
+  const ctx = canvas.getContext('2d');
+  const chartWrap = document.getElementById('chartWrap');
+
+  let userId = null;
+  let currentProfile = {};
+  function userDocRef(){ return doc(dbFs, BINARY_COLLECTION, userId); }
+  function newTradeId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+  let accountType = 'demo';
+  let currency = 'IDR'; // 'IDR' (Rupiah) atau 'USC' (Dolar-Cent)
+  let balances = {
+    IDR: { demo: 9999920, real: 0 },
+    USC: { demo: 999.88, real: 0 }
+  };
+  let amounts = { IDR: 10000, USC: 0.12 };
+  let amount = amounts[currency];
+  function currencySymbol(){ return currency==='IDR' ? 'Rp' : '$'; }
+  function amountStep(){ return currency==='IDR' ? 10000 : 0.01; }
+  function minAmount(){ return currency==='IDR' ? 10000 : 0.01; }
+  function roundAmount(v){ return currency==='IDR' ? Math.round(v) : Math.round(v*100)/100; }
+  function fmtByCurrency(v, curr){
+    if (curr === 'USC') return '$'+Number(v).toFixed(2);
+    return 'Rp'+Math.round(v).toLocaleString('id-ID');
+  }
+  let visibleCandleCount = 22;
+  let currentTF = '5s';
+  let tfSeconds = 5;
+  let waktuSeconds = tfSeconds; // durasi trade, selalu kelipatan dari timeframe candle aktif
+  let appSettings = { confirmTrade: false, vibrate: true };
+
+  const pairs = [
+    { name:'Crypto IDX', icons:['₿','Ξ'], payout:82, base:641.5 },
+    { name:'EUR/USD OTC', icons:['€','$'], payout:88, base:1.0850 },
+    { name:'GBP/USD OTC', icons:['£','$'], payout:85, base:1.2650 },
+    { name:'Gold OTC', icons:['🥇'], payout:79, base:2350.0 },
+    { name:'BTC/USD', icons:['₿'], payout:76, base:62000.0 },
+  ];
+  let currentPairIdx = 0;
+  let payout = pairs[0].payout/100;
+
+  let candles = [];           // {startTime, open, high, low, close}
+  let currentPrice = pairs[0].base;   // smoothly interpolated, drawn price
+  let targetPrice = pairs[0].base;    // next tick target, price walks toward this
+  let openTrades = [];
+  let closedTrades = [];
+  let tickTimer = null;
+
+  function priceScale(base){ return base > 100 ? base*0.0022 : base*0.0075; }
+
+  /* Seed a real-time-anchored candle history so the chart already looks
+     "in motion" on load, then keep extending it live via requestAnimationFrame. */
+  function seedHistory(base){
+    candles = [];
+    currentPrice = base;
+    targetPrice = base;
+    const now = Date.now();
+    const scale = priceScale(base);
+    let p = base;
+    const count = 45;
+    for (let i=count;i>=1;i--){
+      const start = now - i*(tfSeconds*1000);
+      const open = p;
+      const close = open + (Math.random()-0.5)*scale;
+      const high = Math.max(open,close) + Math.random()*scale*0.5;
+      const low = Math.min(open,close) - Math.random()*scale*0.5;
+      candles.push({startTime:start, open, high, low, close});
+      p = close;
+    }
+    const lastClosed = candles[candles.length-1];
+    candles.push({ startTime: lastClosed.startTime + tfSeconds*1000, open:p, high:p, low:p, close:p });
+    currentPrice = p;
+    targetPrice = p;
+
+    // restart the tick generator so it uses the fresh scale/price immediately
+    if (tickTimer) clearTimeout(tickTimer);
+    scheduleTick();
+  }
+  seedHistory(pairs[0].base);
+
+  /* Simulates real market ticks arriving at irregular intervals.
+     currentPrice eases toward targetPrice every animation frame (see animate()),
+     which is what produces the fluid, continuously-moving candle/wick motion. */
+  function scheduleTick(){
+    const delay = 260 + Math.random()*420;
+    tickTimer = setTimeout(()=>{
+      const scale = priceScale(currentPrice);
+      targetPrice = currentPrice + (Math.random()-0.5)*scale*2;
+      scheduleTick();
+    }, delay);
+  }
+
+  function resize(){
+    const dpr = window.devicePixelRatio || 1;
+    const rect = chartWrap.getBoundingClientRect();
+    canvas.width = rect.width*dpr;
+    canvas.height = rect.height*dpr;
+    canvas.style.width = rect.width+'px';
+    canvas.style.height = rect.height+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    draw();
+  }
+
+  function fmtPrice(v){ return v.toFixed(4); }
+  function setStyle(id, prop, value){
+    const el = document.getElementById(id);
+    if (el) el.style[prop] = value;
+  }
+
+  function draw(){
+    const now = Date.now();
+    const rect = chartWrap.getBoundingClientRect();
+    const width = rect.width, height = rect.height;
+    ctx.clearRect(0,0,width,height);
+
+    const padding = { top:70, right:68, bottom:60, left:4 };
+    const cw = width-padding.left-padding.right;
+    const chH = height-padding.top-padding.bottom;
+    const TF_MS = tfSeconds*1000;
+
+    // "now" sits ~60% across, leaving room on the right for the countdown/expiry area
+    const nowX = padding.left + cw*0.60;
+    const windowMs = visibleCandleCount * TF_MS;
+    const pxPerMs = (nowX - padding.left) / windowMs;
+    function xForTime(t){ return nowX - (now - t) * pxPerMs; }
+
+    const visible = candles.filter(c => xForTime(c.startTime) > padding.left - 30);
+    if (!visible.length) return;
+
+    let minP = Math.min(...visible.map(c=>c.low));
+    let maxP = Math.max(...visible.map(c=>c.high));
+    const pad = (maxP-minP)*0.25 || maxP*0.001;
+    minP -= pad; maxP += pad;
+    function y(price){ return padding.top + chH - ((price-minP)/(maxP-minP))*chH; }
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    for (let i=0;i<4;i++){
+      const x = padding.left+(cw/3)*i;
+      ctx.beginPath(); ctx.moveTo(x,padding.top); ctx.lineTo(x,height-padding.bottom); ctx.stroke();
+    }
+
+    ctx.fillStyle = '#5c6478';
+    ctx.font = '11px -apple-system, Segoe UI, Roboto';
+    ctx.textAlign = 'left';
+    for (let i=0;i<=3;i++){
+      const price = maxP-((maxP-minP)/3)*i;
+      const yy = padding.top+(chH/3)*i;
+      ctx.fillText(fmtPrice(price), width-padding.right+8, yy+4);
+    }
+
+    const slot = TF_MS*pxPerMs;
+    const bodyW = Math.max(slot*0.55,3);
+    visible.forEach(c=>{
+      const x = xForTime(c.startTime) + slot/2;
+      const up = c.close>=c.open;
+      const color = up ? '#26a969' : '#f0654a';
+      ctx.strokeStyle = color; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(x,y(c.high)); ctx.lineTo(x,y(c.low)); ctx.stroke();
+      const bTop=y(Math.max(c.open,c.close)), bBot=y(Math.min(c.open,c.close));
+      ctx.fillStyle = color;
+      ctx.fillRect(x-bodyW/2,bTop,bodyW,Math.max(bBot-bTop,1.5));
+    });
+
+    const lastY = y(currentPrice);
+    ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(padding.left,lastY); ctx.lineTo(width-padding.right,lastY); ctx.stroke();
+    ctx.setLineDash([]);
+
+    const expX = width-padding.right-8;
+    ctx.strokeStyle='rgba(240,101,74,0.55)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(expX,padding.top-40); ctx.lineTo(expX,height-padding.bottom); ctx.stroke();
+
+    openTrades.filter(t=>t.pairIdx===currentPairIdx).forEach(t=>{
+      const ey = y(t.entryPrice);
+      ctx.strokeStyle = t.direction==='up' ? 'rgba(38,169,105,0.7)' : 'rgba(240,101,74,0.7)';
+      ctx.setLineDash([2,2]); ctx.lineWidth=1.3;
+      ctx.beginPath(); ctx.moveTo(padding.left,ey); ctx.lineTo(width-padding.right,ey); ctx.stroke();
+      ctx.setLineDash([]);
+    });
+
+    const priceTag = document.getElementById('priceTag');
+    priceTag.style.top = (lastY-12)+'px';
+    priceTag.style.left = '';
+    priceTag.style.right = '4px';
+    priceTag.textContent = currentPrice.toFixed(10).slice(0, currentPrice>100?12:14);
+
+    setStyle('countdownBadge', 'left', (width*0.62)+'px');
+    setStyle('expiryBadge', 'left', (width*0.79)+'px');
+
+    const axis = document.getElementById('timeAxis');
+    const labels = [];
+    for (let i=2;i>=0;i--){
+      const t = new Date(now - i*60000);
+      labels.push(String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':00');
+    }
+    axis.innerHTML = labels.map(l=>`<span>${l}</span>`).join('');
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+
+  /* Main animation loop — runs at display refresh rate (60fps) so the current
+     candle grows/shrinks fluidly and the whole chart pans left continuously,
+     exactly like the reference recording, instead of snapping once per second. */
+  function animate(){
+    const now = Date.now();
+    const TF_MS = tfSeconds*1000;
+    let cur = candles[candles.length-1];
+
+    while (now - cur.startTime >= TF_MS){
+      const newStart = cur.startTime + TF_MS;
+      const openP = cur.close;
+      candles.push({ startTime:newStart, open:openP, high:openP, low:openP, close:openP });
+      if (candles.length > 240) candles.shift();
+      cur = candles[candles.length-1];
+      checkExpiredTrades();
+    }
+
+    // ease currentPrice toward targetPrice — this is what makes the motion smooth
+    currentPrice += (targetPrice - currentPrice) * 0.09;
+    cur.close = currentPrice;
+    if (currentPrice > cur.high) cur.high = currentPrice;
+    if (currentPrice < cur.low) cur.low = currentPrice;
+
+    draw();
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+
+  setInterval(()=>{
+    const cur = candles[candles.length-1];
+    if (!cur) return;
+    const remain = Math.max(0, Math.ceil((cur.startTime + tfSeconds*1000 - Date.now())/1000));
+    document.getElementById('countdownBadge').textContent = ':'+String(remain).padStart(2,'0');
+  }, 250);
+
+  // Trade expiry is independent of candle formation, so it gets its own timer
+  setInterval(checkExpiredTrades, 500);
+
+  function tickClock(){
+    const now = new Date();
+    const hh=String(now.getHours()).padStart(2,'0'), mm=String(now.getMinutes()).padStart(2,'0'), ss=String(now.getSeconds()).padStart(2,'0');
+    document.getElementById('serverTime').textContent = `${hh}:${mm}:${ss} GMT+7`;
+  }
+  setInterval(tickClock,1000); tickClock();
+
+  function fmtDuration(sec){
+    if (sec < 60) return sec + 's';
+    const m = Math.floor(sec/60), s = sec%60;
+    return s===0 ? m+'m' : m+'m '+s+'s';
+  }
+  function maxWaktuSeconds(){ return Math.min(3600, tfSeconds*60); }
+  function updateWaktu(){
+    document.getElementById('waktuValue').textContent = fmtDuration(waktuSeconds);
+  }
+  document.getElementById('waktuPlus').onclick=()=>{ waktuSeconds=Math.min(maxWaktuSeconds(),waktuSeconds+tfSeconds); updateWaktu(); saveSettings(); };
+  document.getElementById('waktuMinus').onclick=()=>{ waktuSeconds=Math.max(tfSeconds,waktuSeconds-tfSeconds); updateWaktu(); saveSettings(); };
+  updateWaktu();
+
+  function updateEarnings(){
+    document.getElementById('earningsAmt').textContent = fmtBalance(amount*payout);
+    document.getElementById('jumlahValue').textContent = fmtBalance(amount);
+    document.getElementById('earningsPct').textContent = '+'+Math.round(payout*100)+'%';
+  }
+  document.getElementById('jumlahPlus').onclick=()=>{ amount=roundAmount(amount+amountStep()); amounts[currency]=amount; updateEarnings(); saveSettings(); };
+  document.getElementById('jumlahMinus').onclick=()=>{ amount=Math.max(minAmount(),roundAmount(amount-amountStep())); amounts[currency]=amount; updateEarnings(); saveSettings(); };
+  updateEarnings();
+
+  function saveSettings(){
+    if (!userId) return;
+    amounts[currency] = amount;
+    setDoc(userDocRef(), { settings: { accountType, currency, amounts, waktuSeconds, currentPairIdx, currentTF, tfSeconds, appSettings } }, { merge: true }).catch(()=>{});
+  }
+
+  function fmtBalance(v){
+    if (currency === 'USC') return Number(v).toFixed(2);
+    return Math.round(v).toLocaleString('id-ID');
+  }
+  function updateCurrencySymbols(){
+    document.querySelectorAll('.cur-symbol').forEach(el=>{ el.textContent = currencySymbol(); });
+  }
+  function refreshBalanceUI(){
+    updateCurrencySymbols();
+    document.getElementById('balanceTop').textContent = fmtBalance(balances[currency][accountType]);
+    document.getElementById('accDemoBal').textContent = fmtBalance(balances[currency].demo);
+    document.getElementById('accRealBal').textContent = fmtBalance(balances[currency].real);
+    document.getElementById('walletCurBal').textContent = fmtBalance(balances[currency][accountType]);
+    const accLabel = accountType === 'real' ? 'Real' : 'Demo';
+    document.getElementById('walletTitle').textContent = 'Dompet — Deposit ' + accLabel;
+    document.getElementById('depositConfirm').textContent = 'Tambah Saldo ' + accLabel;
+    document.getElementById('curIdrOpt').classList.toggle('selected', currency==='IDR');
+    document.getElementById('curUscOpt').classList.toggle('selected', currency==='USC');
+    const depositInput = document.getElementById('depositInput');
+    if (depositInput){
+      depositInput.placeholder = `Jumlah deposit (${currencySymbol()})`;
+      depositInput.step = currency==='IDR' ? '10000' : '0.01';
+    }
+  }
+  refreshBalanceUI();
+
+  document.getElementById('curIdrOpt').onclick = ()=>{ if (currency!=='IDR') switchCurrency('IDR'); };
+  document.getElementById('curUscOpt').onclick = ()=>{ if (currency!=='USC') switchCurrency('USC'); };
+  function switchCurrency(newCur){
+    amounts[currency] = amount;
+    currency = newCur;
+    amount = amounts[currency];
+    refreshBalanceUI();
+    updateEarnings();
+    saveSettings();
+    showToast('Mata uang diganti ke ' + (currency==='IDR' ? 'Rupiah' : 'Dolar-Cent'), 'win');
+  }
+
+  function showToast(msg,cls){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show '+cls;
+    setTimeout(()=>{ t.className='toast '+cls; }, 2200);
+  }
+
+  let tradeCounter = 0;
+  function placeTrade(direction){
+    if (maintenanceActive){ showToast('Trading dinonaktifkan sementara — aplikasi sedang diperbaiki','lose'); return; }
+    if (amount > balances[currency][accountType]) { showToast('Saldo tidak cukup','lose'); return; }
+    if (!userId) { showToast('Menghubungkan ke server...','lose'); return; }
+
+    if (appSettings.vibrate && navigator.vibrate) navigator.vibrate(30);
+
+    const accKey = accountType;
+    const curKey = currency;
+    document.getElementById('btnUp').disabled = true;
+    document.getElementById('btnDown').disabled = true;
+
+    const tradeId = newTradeId();
+    const tradeData = {
+      direction,
+      entryPrice: currentPrice,
+      amount,
+      pairIdx: currentPairIdx,
+      pairName: pairs[currentPairIdx].name,
+      payout,
+      accountType: accKey,
+      currency: curKey,
+      placedAt: Date.now(),
+      expiresAt: Date.now() + waktuSeconds*1000
+    };
+
+    runTransaction(dbFs, async (transaction)=>{
+      const snap = await transaction.get(userDocRef());
+      const data = snap.exists() ? snap.data() : {};
+      const curBal = (data.balances && data.balances[curKey] && typeof data.balances[curKey][accKey]==='number') ? data.balances[curKey][accKey] : balances[curKey][accKey];
+      if (curBal < amount) throw new Error('INSUFFICIENT_FUNDS');
+      const newBal = curBal - amount;
+      transaction.set(userDocRef(), {
+        balances: { [curKey]: { [accKey]: newBal } },
+        openTrades: { [tradeId]: tradeData }
+      }, { merge: true });
+      return newBal;
+    }).then((newBal)=>{
+      balances[curKey][accKey] = newBal;
+      refreshBalanceUI();
+      openTrades.push({ ...tradeData, id: ++tradeCounter, dbKey: tradeId });
+      updateOpenTradesUI();
+      draw();
+      showToast(direction==='up' ? `↑ NAIK ${fmtByCurrency(amount,curKey)} — durasi ${fmtDuration(waktuSeconds)}` : `↓ TURUN ${fmtByCurrency(amount,curKey)} — durasi ${fmtDuration(waktuSeconds)}`, direction==='up'?'win':'lose');
+    }).catch(err=>{
+      if (err.message === 'INSUFFICIENT_FUNDS') showToast('Saldo tidak cukup','lose');
+      else if (err.code === 'permission-denied') { console.error(err); showToast('Gagal memproses transaksi: izin Firestore ditolak','lose'); }
+      else { console.error(err); showToast('Gagal memproses transaksi: ' + (err.code || err.message || 'coba lagi'),'lose'); }
+    });
+
+    setTimeout(()=>{
+      document.getElementById('btnUp').disabled=false;
+      document.getElementById('btnDown').disabled=false;
+    }, 400);
+  }
+
+  const confirmTradeSheet = document.getElementById('confirmTradeSheet');
+  let pendingDirection = null;
+  let maintenanceActive = false;
+  function requestTrade(direction){
+    if (maintenanceActive){ showToast('Trading dinonaktifkan sementara — aplikasi sedang diperbaiki','lose'); return; }
+    if (!appSettings.confirmTrade){ placeTrade(direction); return; }
+    pendingDirection = direction;
+    const dirLabel = direction==='up' ? 'NAIK ↑' : 'TURUN ↓';
+    document.getElementById('confirmTradeTitle').textContent = `Konfirmasi ${dirLabel}`;
+    document.getElementById('confirmTradeDesc').textContent = `Pasang ${fmtByCurrency(amount,currency)} arah ${dirLabel} selama ${fmtDuration(waktuSeconds)} pada ${pairs[currentPairIdx].name}?`;
+    openPanel(confirmTradeSheet);
+  }
+  document.getElementById('confirmTradeCancel').onclick = ()=>{ pendingDirection=null; closeAllPanels(); };
+  document.getElementById('confirmTradeOk').onclick = ()=>{
+    closeAllPanels();
+    if (pendingDirection) placeTrade(pendingDirection);
+    pendingDirection = null;
+  };
+  document.getElementById('btnUp').onclick=()=>requestTrade('up');
+  document.getElementById('btnDown').onclick=()=>requestTrade('down');
+
+  // Payout skalanya naik semakin jauh candle bergerak dari harga entry
+  // ke arah yang benar (mirip CFD/leverage), bukan payout tetap seperti binary klasik.
+  function calcProfit(t, priceNow, won){
+    if (!won) return 0;
+    const distPct = Math.abs(priceNow - t.entryPrice) / t.entryPrice * 100;
+    const multiplier = Math.min(1 + distPct * 1.5, 9); // dibatasi maks 9x supaya tetap wajar
+    return t.amount * t.payout * multiplier;
+  }
+
+  function checkExpiredTrades(){
+    const now = Date.now();
+    const stillOpen = [];
+    openTrades.forEach(t=>{
+      if (now >= t.expiresAt){
+        const priceNow = t.pairIdx===currentPairIdx ? currentPrice : t.entryPrice + (Math.random()-0.5)*t.entryPrice*0.001;
+        const won = t.direction==='up' ? priceNow > t.entryPrice : priceNow < t.entryPrice;
+        const profit = calcProfit(t, priceNow, won);
+        const payoutAmt = won ? t.amount + profit : 0;
+        const closedTrade = {...t, exitPrice:priceNow, won, payoutAmt, profit};
+        delete closedTrade.dbKey;
+        closedTrades.unshift(closedTrade);
+
+        const tAccount = t.accountType || accountType;
+        const tCurrency = t.currency || 'IDR';
+        if (userId){
+          const closedId = t.dbKey || newTradeId();
+          if (won){
+            runTransaction(dbFs, async (transaction)=>{
+              const snap = await transaction.get(userDocRef());
+              const data = snap.exists() ? snap.data() : {};
+              const curBal = (data.balances && data.balances[tCurrency] && typeof data.balances[tCurrency][tAccount]==='number') ? data.balances[tCurrency][tAccount] : balances[tCurrency][tAccount];
+              const newBal = curBal + payoutAmt;
+              const update = { balances: { [tCurrency]: { [tAccount]: newBal } }, closedTrades: { [closedId]: closedTrade } };
+              transaction.set(userDocRef(), update, { merge: true });
+              return newBal;
+            }).then(newBal=>{
+              balances[tCurrency][tAccount] = newBal;
+              refreshBalanceUI();
+            }).catch(()=>{});
+          } else {
+            setDoc(userDocRef(), { closedTrades: { [closedId]: closedTrade } }, { merge: true }).catch(()=>{});
+          }
+          if (t.dbKey){
+            updateDoc(userDocRef(), { [`openTrades.${t.dbKey}`]: deleteField() }).catch(()=>{});
+          }
+        } else if (won){
+          balances[tCurrency][tAccount] += payoutAmt;
+          refreshBalanceUI();
+        }
+
+        showToast(won ? `✓ MENANG +${fmtByCurrency(profit,tCurrency)}` : `✗ KALAH -${fmtByCurrency(t.amount,tCurrency)}`, won?'win':'lose');
+        renderHistory();
+      } else {
+        stillOpen.push(t);
+      }
+    });
+    openTrades = stillOpen;
+    updateOpenTradesUI();
+  }
+
+  function updateOpenTradesUI(){
+    document.getElementById('openTradesCount').textContent = openTrades.length;
+  }
+
+  function renderHistory(){
+    const list = document.getElementById('historyList');
+    if (closedTrades.length===0 && openTrades.length===0){
+      list.innerHTML = '<div class="empty-state">Belum ada transaksi</div>';
+      return;
+    }
+    let html = '';
+    openTrades.forEach(t=>{
+      const remainMs = t.expiresAt-Date.now();
+      const remainS = Math.max(0,Math.ceil(remainMs/1000));
+      const tCur = t.currency || 'IDR';
+      html += `<div class="history-item">
+        <div class="history-left">
+          <span class="history-pair">${t.pairName} ${t.direction==='up'?'↑':'↓'}</span>
+          <span class="history-meta">Entry: ${fmtPrice(t.entryPrice)} · ${fmtByCurrency(t.amount,tCur)} · sisa ${remainS}s</span>
+        </div>
+        <div class="history-result pending">Berjalan</div>
+      </div>`;
+    });
+    closedTrades.slice(0,30).forEach(t=>{
+      const tCur = t.currency || 'IDR';
+      const profit = typeof t.profit === 'number' ? t.profit : (t.won ? t.amount*t.payout : 0);
+      html += `<div class="history-item">
+        <div class="history-left">
+          <span class="history-pair">${t.pairName} ${t.direction==='up'?'↑':'↓'}</span>
+          <span class="history-meta">Entry: ${fmtPrice(t.entryPrice)} → Exit: ${fmtPrice(t.exitPrice)}</span>
+        </div>
+        <div class="history-result ${t.won?'win':'lose'}">${t.won? '+'+fmtByCurrency(profit,tCur) : '-'+fmtByCurrency(t.amount,tCur)}</div>
+      </div>`;
+    });
+    list.innerHTML = html;
+  }
+
+  const overlay = document.getElementById('overlay');
+  function openPanel(el){
+    overlay.classList.add('show');
+    el.classList.add('show');
+  }
+  function closeAllPanels(){
+    overlay.classList.remove('show');
+    document.querySelectorAll('.drawer, .sheet').forEach(e=>e.classList.remove('show'));
+  }
+  overlay.onclick = closeAllPanels;
+
+  const drawer = document.getElementById('drawer');
+  document.getElementById('hamburgerBtn').onclick = ()=>openPanel(drawer);
+  document.getElementById('logoBtn').onclick = ()=>{ closeAllPanels(); showToast('Beranda','win'); };
+  document.getElementById('menuHome').onclick = ()=>{ closeAllPanels(); };
+  document.getElementById('menuHistory2').onclick = ()=>{ closeAllPanels(); renderHistory(); openPanel(document.getElementById('historySheet')); };
+  document.getElementById('menuWallet2').onclick = ()=>{ closeAllPanels(); openPanel(document.getElementById('walletSheet')); };
+  document.getElementById('menuSettings2').onclick = ()=>{ closeAllPanels(); openPanel(document.getElementById('settingsSheet')); };
+  const demoResetDefaults = { IDR: 10000000, USC: 1000 };
+  function resetDemoBalance(){
+    const resetVal = demoResetDefaults[currency];
+    const finish = ()=>{
+      balances[currency].demo = resetVal;
+      refreshBalanceUI();
+      closeAllPanels();
+      showToast('Akun demo direset ke ' + fmtByCurrency(resetVal,currency),'win');
+    };
+    if (userId){ setDoc(userDocRef(), { balances: { [currency]: { demo: resetVal } } }, { merge: true }).then(finish).catch(()=>{ showToast('Gagal reset saldo','lose'); }); }
+    else finish();
+  }
+  document.getElementById('menuReset').onclick = resetDemoBalance;
+  document.getElementById('menuResetSettings').onclick = resetDemoBalance;
+  document.getElementById('menuAbout').onclick = ()=>{ closeAllPanels(); showToast('Binary Option Trading Demo v1.0','win'); };
+
+  // ---- Pengaturan Aplikasi ----
+  function applySettingsUI(){
+    document.getElementById('toggleConfirmTrade').classList.toggle('on', !!appSettings.confirmTrade);
+    document.getElementById('toggleVibrate').classList.toggle('on', !!appSettings.vibrate);
+  }
+  applySettingsUI();
+  document.getElementById('toggleConfirmTrade').onclick = ()=>{
+    appSettings.confirmTrade = !appSettings.confirmTrade;
+    applySettingsUI();
+    saveSettings();
+  };
+  document.getElementById('toggleVibrate').onclick = ()=>{
+    appSettings.vibrate = !appSettings.vibrate;
+    applySettingsUI();
+    saveSettings();
+  };
+  document.getElementById('menuResetProgress').onclick = ()=>{
+    if (!confirm('Hapus semua progres (saldo, riwayat, pengaturan) di perangkat ini?')) return;
+    const finish = ()=>{ resetLocalState(); closeAllPanels(); showToast('Semua progres dihapus','win'); };
+    if (userId){
+      setDoc(userDocRef(), {
+        balances: { IDR: { demo: 9999920, real: 0 }, USC: { demo: 999.88, real: 0 } },
+        settings: { accountType:'demo', currency:'IDR', amounts:{ IDR:10000, USC:0.12 }, waktuSeconds: tfSeconds, currentPairIdx:0, currentTF, tfSeconds, appSettings:{ confirmTrade:false, vibrate:true } },
+        openTrades: {},
+        closedTrades: {}
+      }).then(finish).catch(()=>{ showToast('Gagal menghapus progres','lose'); });
+    } else finish();
+  };
+  document.getElementById('settingsChip').onclick = ()=>{ openPanel(document.getElementById('settingsSheet')); };
+
+  const accountSheet = document.getElementById('accountSheet');
+  document.getElementById('accountInfoBtn').onclick = ()=>openPanel(accountSheet);
+  document.getElementById('accDemoOpt').onclick = ()=>{
+    accountType='demo';
+    document.getElementById('accTypeLabel').textContent='demo';
+    document.getElementById('accDemoOpt').classList.add('selected');
+    document.getElementById('accRealOpt').classList.remove('selected');
+    refreshBalanceUI(); closeAllPanels(); saveSettings();
+    showToast('Beralih ke Akun Demo','win');
+  };
+  document.getElementById('accRealOpt').onclick = ()=>{
+    accountType='real';
+    document.getElementById('accTypeLabel').textContent='real';
+    document.getElementById('accRealOpt').classList.add('selected');
+    document.getElementById('accDemoOpt').classList.remove('selected');
+    refreshBalanceUI(); closeAllPanels(); saveSettings();
+    showToast('Beralih ke Akun Real','lose');
+  };
+
+  const walletSheet = document.getElementById('walletSheet');
+  document.getElementById('walletBtn').onclick = ()=>openPanel(walletSheet);
+  document.getElementById('depositConfirm').onclick = ()=>{
+    const val = parseFloat(document.getElementById('depositInput').value) || 0;
+    if (val<=0){ showToast('Masukkan jumlah valid','lose'); return; }
+    if (!userId){ showToast('Menghubungkan ke server...','lose'); return; }
+    const accKey = accountType;
+    const curKey = currency;
+    runTransaction(dbFs, async (transaction)=>{
+      const snap = await transaction.get(userDocRef());
+      const data = snap.exists() ? snap.data() : {};
+      const curBal = (data.balances && data.balances[curKey] && typeof data.balances[curKey][accKey]==='number') ? data.balances[curKey][accKey] : balances[curKey][accKey];
+      const newBal = curBal + val;
+      transaction.set(userDocRef(), { balances: { [curKey]: { [accKey]: newBal } } }, { merge: true });
+      return newBal;
+    }).then(newBal=>{
+      balances[curKey][accKey] = newBal;
+      refreshBalanceUI();
+      closeAllPanels();
+      showToast(`+${fmtByCurrency(val,curKey)} berhasil ditambahkan`,'win');
+    }).catch(err=>{
+      console.error(err);
+      const reason = err.code === 'permission-denied' ? 'izin Firestore ditolak' : (err.code || err.message || 'coba lagi');
+      showToast('Gagal menambah saldo: ' + reason,'lose');
+    });
+  };
+
+  document.getElementById('avatarBtn').onclick = ()=>{
+    setStyle('avatarDot', 'display', 'none');
+    openPanel(accountSheet);
+  };
+
+  document.getElementById('refreshBtn').onclick = ()=>{
+    const btn = document.getElementById('refreshBtn');
+    btn.style.transform='rotate(360deg)';
+    setTimeout(()=>btn.style.transform='',400);
+    seedHistory(pairs[currentPairIdx].base);
+    draw();
+    showToast('Data chart diperbarui','win');
+  };
+
+  const pairSheet = document.getElementById('pairSheet');
+  function renderPairList(){
+    const list = document.getElementById('pairList');
+    list.innerHTML = pairs.map((p,i)=>`
+      <div class="pair-option ${i===currentPairIdx?'selected':''}" data-idx="${i}">
+        <div class="pair-option-left">${p.icons.join(' ')} ${p.name}</div>
+        <div class="payout-val">${p.payout}%</div>
+      </div>
+    `).join('');
+    list.querySelectorAll('.pair-option').forEach(el=>{
+      el.onclick = ()=>{
+        const idx = parseInt(el.getAttribute('data-idx'));
+        selectPair(idx);
+        closeAllPanels();
+      };
+    });
+  }
+  function selectPair(idx){
+    currentPairIdx = idx;
+    const p = pairs[idx];
+    payout = p.payout/100;
+    document.getElementById('pairName').textContent = p.name;
+    document.getElementById('payoutPct').textContent = p.payout+'%';
+    document.getElementById('pairIcons').innerHTML = p.icons.map((ic,i)=>`<span class="coin-icon ${i===0?'coin-btc':'coin-eth'}">${ic}</span>`).join('');
+    seedHistory(p.base);
+    updateEarnings();
+    draw();
+    saveSettings();
+    showToast(`Aset diganti ke ${p.name}`,'win');
+  }
+  document.getElementById('pairChipBtn').onclick = ()=>{ renderPairList(); openPanel(pairSheet); };
+
+  const tfSheet = document.getElementById('tfSheet');
+  const timeframes = [
+    {label:'5s', sec:5}, {label:'15s', sec:15}, {label:'30s', sec:30},
+    {label:'1m', sec:60}, {label:'5m', sec:300}, {label:'15m', sec:900}
+  ];
+  function renderTfList(){
+    const list = document.getElementById('tfList');
+    list.innerHTML = timeframes.map(tf=>`
+      <div class="pair-option ${tf.label===currentTF?'selected':''}" data-tf="${tf.label}" data-sec="${tf.sec}">
+        <div class="pair-option-left">${tf.label}</div>
+      </div>
+    `).join('');
+    list.querySelectorAll('.pair-option').forEach(el=>{
+      el.onclick = ()=>{
+        currentTF = el.getAttribute('data-tf');
+        tfSeconds = parseInt(el.getAttribute('data-sec'));
+        document.getElementById('tfChip').textContent = currentTF;
+        // Durasi trade otomatis disamakan dengan timeframe yang baru dipilih,
+        // bukan dipertahankan dari timeframe sebelumnya — supaya "5s" ya benar-benar 5 detik.
+        waktuSeconds = tfSeconds;
+        updateWaktu();
+        seedHistory(pairs[currentPairIdx].base);
+        closeAllPanels();
+        saveSettings();
+        showToast(`Timeframe: ${currentTF} — durasi trade: ${fmtDuration(waktuSeconds)}`,'win');
+      };
+    });
+  }
+  document.getElementById('tfChip').onclick = ()=>{ renderTfList(); openPanel(tfSheet); };
+
+  const drawChip = document.getElementById('drawChip');
+  let drawActive = false;
+  drawChip.onclick = ()=>{
+    drawActive = !drawActive;
+    drawChip.classList.toggle('active-tool', drawActive);
+    showToast(drawActive ? 'Mode gambar aktif' : 'Mode gambar nonaktif', drawActive?'win':'lose');
+  };
+
+  document.getElementById('zoomIn').onclick = ()=>{
+    visibleCandleCount = Math.max(10, visibleCandleCount-4);
+    draw();
+  };
+  document.getElementById('zoomOut').onclick = ()=>{
+    visibleCandleCount = Math.min(60, visibleCandleCount+4);
+    draw();
+  };
+
+  document.getElementById('openTradesLink').onclick = ()=>{
+    renderHistory();
+    openPanel(document.getElementById('historySheet'));
+  };
+
+  const navItems = ['navChart','navAssets','navHistory','navWallet','navProfile'];
+  function setActiveNav(id){
+    navItems.forEach(n=>document.getElementById(n).classList.toggle('active', n===id));
+  }
+  document.getElementById('navChart').onclick = ()=>{ setActiveNav('navChart'); closeAllPanels(); };
+  document.getElementById('navAssets').onclick = ()=>{ setActiveNav('navAssets'); renderPairList(); openPanel(pairSheet); setStyle('assetsDot','display','none'); };
+  document.getElementById('navHistory').onclick = ()=>{ setActiveNav('navHistory'); renderHistory(); openPanel(document.getElementById('historySheet')); };
+  document.getElementById('navWallet').onclick = ()=>{ setActiveNav('navWallet'); openPanel(walletSheet); setStyle('walletDot','display','none'); };
+  document.getElementById('navProfile').onclick = ()=>{ setActiveNav('navProfile'); openPanel(accountSheet); };
+
+  setInterval(()=>{
+    if (document.getElementById('historySheet').classList.contains('show')) renderHistory();
+  }, 1000);
+
+  renderHistory();
+
+  // ---- Firebase: muat data akun (saldo, entry, riwayat) milik user yang login ----
+  async function initFirebaseData(){
+    const snap = await getDoc(userDocRef());
+    if (snap.exists()){
+      const data = snap.data() || {};
+      if (data.profile) currentProfile = data.profile;
+      if (data.balances){
+        if (typeof data.balances.demo === 'number'){
+          // format lama (flat, sebelum ada multi-currency) — dianggap Rupiah
+          balances.IDR.demo = data.balances.demo;
+          if (typeof data.balances.real === 'number') balances.IDR.real = data.balances.real;
+        } else {
+          if (data.balances.IDR){
+            if (typeof data.balances.IDR.demo === 'number') balances.IDR.demo = data.balances.IDR.demo;
+            if (typeof data.balances.IDR.real === 'number') balances.IDR.real = data.balances.IDR.real;
+          }
+          if (data.balances.USC){
+            if (typeof data.balances.USC.demo === 'number') balances.USC.demo = data.balances.USC.demo;
+            if (typeof data.balances.USC.real === 'number') balances.USC.real = data.balances.USC.real;
+          }
+        }
+      }
+      if (data.settings){
+        if (data.settings.accountType) accountType = data.settings.accountType;
+        if (data.settings.currency === 'IDR' || data.settings.currency === 'USC') currency = data.settings.currency;
+        if (data.settings.amounts){
+          if (typeof data.settings.amounts.IDR === 'number') amounts.IDR = data.settings.amounts.IDR;
+          if (typeof data.settings.amounts.USC === 'number') amounts.USC = data.settings.amounts.USC;
+        } else if (typeof data.settings.amount === 'number'){
+          // format lama (satu nilai amount saja, sebelum ada multi-currency)
+          amounts.IDR = data.settings.amount;
+        }
+        amount = amounts[currency];
+        if (data.settings.currentPairIdx !== undefined && data.settings.currentPairIdx !== null && pairs[data.settings.currentPairIdx]) {
+          currentPairIdx = data.settings.currentPairIdx;
+          const p = pairs[currentPairIdx];
+          payout = p.payout/100;
+          document.getElementById('pairName').textContent = p.name;
+          document.getElementById('payoutPct').textContent = p.payout+'%';
+          document.getElementById('pairIcons').innerHTML = p.icons.map((ic,i)=>`<span class="coin-icon ${i===0?'coin-btc':'coin-eth'}">${ic}</span>`).join('');
+        }
+        if (data.settings.currentTF && data.settings.tfSeconds){
+          currentTF = data.settings.currentTF;
+          tfSeconds = data.settings.tfSeconds;
+          document.getElementById('tfChip').textContent = currentTF;
+        }
+        // durasi trade: pakai data baru (waktuSeconds) jika ada, kalau tidak
+        // konversi dari format lama (waktuMin), lalu pastikan tetap kelipatan valid dari tfSeconds
+        if (typeof data.settings.waktuSeconds === 'number') waktuSeconds = data.settings.waktuSeconds;
+        else if (typeof data.settings.waktuMin === 'number') waktuSeconds = data.settings.waktuMin*60;
+        else waktuSeconds = tfSeconds;
+        waktuSeconds = Math.max(tfSeconds, Math.min(maxWaktuSeconds(), Math.round(waktuSeconds/tfSeconds)*tfSeconds));
+        if (data.settings.appSettings) appSettings = { ...appSettings, ...data.settings.appSettings };
+        seedHistory(pairs[currentPairIdx].base);
+      }
+      if (data.openTrades){
+        openTrades = Object.entries(data.openTrades).map(([key,t])=>({...t, id: ++tradeCounter, dbKey:key}));
+      }
+      if (data.closedTrades){
+        closedTrades = Object.entries(data.closedTrades)
+          .map(([key,t])=>({...t, dbKey:key}))
+          .sort((a,b)=>b.placedAt-a.placedAt)
+          .slice(0,30);
+      }
+    } else {
+      await setDoc(userDocRef(), {
+        balances,
+        settings: { accountType, currency, amounts, waktuSeconds, currentPairIdx, currentTF, tfSeconds, appSettings },
+        openTrades: {},
+        closedTrades: {}
+      }).catch(()=>{});
+    }
+    document.getElementById('accTypeLabel').textContent = accountType;
+    document.getElementById('accDemoOpt').classList.toggle('selected', accountType==='demo');
+    document.getElementById('accRealOpt').classList.toggle('selected', accountType==='real');
+    refreshBalanceUI();
+    updateEarnings();
+    updateWaktu();
+    applySettingsUI();
+    updateOpenTradesUI();
+    renderHistory();
+    draw();
+    showAccountId();
+    updateLoginUI(auth.currentUser);
+  }
+
+  function showAccountId(){
+    const el = document.getElementById('accountIdDesc');
+    const fullEl = document.getElementById('accountIdFull');
+    if (!el || !userId) return;
+    const shortId = 'BOT-' + userId.slice(0,8).toUpperCase();
+    el.textContent = shortId;
+    if (fullEl) fullEl.textContent = 'UID lengkap: ' + userId;
+  }
+  document.getElementById('accountIdRow').onclick = ()=>{
+    if (!userId) return;
+    const text = userId;
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(()=>{
+        showToast('UID disalin ke clipboard','win');
+      }).catch(()=>{
+        showToast('Gagal menyalin, UID: ' + text, 'lose');
+      });
+    } else {
+      showToast('UID: ' + text, 'win');
+    }
+  };
+
+  // ---- Mode maintenance: status disimpan di app_config/status, diubah manual
+  // lewat Firebase Console (koleksi app_config, dokumen status, field maintenance & message).
+  // Terpantau real-time via onSnapshot, jadi begitu diubah di Console, semua
+  // pengguna yang sedang buka aplikasi langsung ikut ter-update. ----
+  const maintenanceRef = doc(dbFs, 'app_config', 'status');
+  function setMaintenanceMode(active, message){
+    maintenanceActive = active;
+    const banner = document.getElementById('maintenanceBanner');
+    banner.classList.toggle('show', active);
+    if (message) document.getElementById('maintenanceMsg').textContent = message;
+    document.getElementById('btnUp').disabled = active;
+    document.getElementById('btnDown').disabled = active;
+  }
+  onSnapshot(maintenanceRef, (snap)=>{
+    if (snap.exists()){
+      const d = snap.data();
+      setMaintenanceMode(!!d.maintenance, d.message || 'Aplikasi sedang dalam perbaikan. Trading sementara dinonaktifkan.');
+    } else {
+      setMaintenanceMode(false, '');
+    }
+  }, ()=>{ /* offline/no permission: biarkan trading tetap jalan seperti biasa */ });
+
+  // ---- Firebase: masuk otomatis secara anonim, Firebase hanya dipakai untuk
+  // menyimpan progres (saldo, riwayat, pengaturan) per perangkat, tanpa layar login.
+  // Login pakai Nomor HP + Kata Sandi (opsional) tersedia lewat menu drawer. ----
+  onAuthStateChanged(auth, (user)=>{
+    if (user){
+      userId = user.uid;
+      updateLoginUI(user);
+      initFirebaseData().catch(err=>{
+        console.error('Gagal memuat data akun', err);
+        showToast('Gagal memuat data akun, cek koneksi','lose');
+      });
+    } else {
+      userId = null;
+      currentProfile = {};
+      resetLocalState();
+      updateLoginUI(null);
+      signInAnonymously(auth).catch(err=>{
+        console.error('Gagal masuk anonim', err);
+        showToast('Gagal terhubung ke server','lose');
+      });
+    }
+  });
+
+  // ---- Login Nomor HP + Kata Sandi tanpa OTP ----
+  // Trik: nomor HP diubah jadi "email sintetis" (mis. 6281234567890@phone.bot-app.local)
+  // lalu dipakai lewat provider Email/Password bawaan Firebase Auth — sama sekali
+  // tidak lewat SMS/OTP. Nomor HP asli tetap disimpan apa adanya di profile Firestore.
+  // Daftar akan MENAUTKAN akun anonim yang sedang aktif (linkWithCredential), jadi
+  // progres yang sudah ada di perangkat ini tidak hilang saat baru daftar.
+  const PHONE_EMAIL_DOMAIN = 'phone.bot-app.local';
+  function normalizePhone(raw){
+    let n = raw.replace(/[^0-9]/g,'');
+    if (n.startsWith('0')) n = '62' + n.slice(1);
+    else if (!n.startsWith('62')) n = '62' + n;
+    return n;
+  }
+  function phoneToSyntheticEmail(phone){ return phone + '@' + PHONE_EMAIL_DOMAIN; }
+
+  let loginMode = 'in'; // 'in' = Masuk, 'up' = Daftar
+  function showLoginError(msg, isInfo){
+    const el = document.getElementById('loginError');
+    el.textContent = msg;
+    el.className = 'login-error' + (isInfo ? ' info' : '');
+  }
+  function clearLoginError(){ showLoginError(''); }
+
+  document.getElementById('loginTabIn').onclick = ()=>{
+    loginMode = 'in';
+    document.getElementById('loginTabIn').classList.add('selected');
+    document.getElementById('loginTabUp').classList.remove('selected');
+    document.getElementById('loginName').style.display = 'none';
+    document.getElementById('loginSubmitBtn').textContent = 'Masuk';
+    clearLoginError();
+  };
+  document.getElementById('loginTabUp').onclick = ()=>{
+    loginMode = 'up';
+    document.getElementById('loginTabUp').classList.add('selected');
+    document.getElementById('loginTabIn').classList.remove('selected');
+    document.getElementById('loginName').style.display = 'block';
+    document.getElementById('loginSubmitBtn').textContent = 'Daftar';
+    clearLoginError();
+  };
+
+  function loginErrorMessage(err){
+    const code = err && err.code ? err.code : '';
+    const map = {
+      'auth/email-already-in-use': 'Nomor HP ini sudah terdaftar. Coba menu Masuk.',
+      'auth/credential-already-in-use': 'Nomor HP ini sudah terdaftar di akun lain. Coba menu Masuk.',
+      'auth/invalid-email': 'Format nomor HP tidak valid.',
+      'auth/weak-password': 'Kata sandi minimal 6 karakter.',
+      'auth/user-not-found': 'Nomor HP belum terdaftar. Coba menu Daftar.',
+      'auth/wrong-password': 'Kata sandi salah.',
+      'auth/invalid-credential': 'Nomor HP atau kata sandi salah.',
+      'auth/too-many-requests': 'Terlalu banyak percobaan, coba lagi nanti.'
+    };
+    return map[code] || (err && err.message ? err.message : 'Terjadi kesalahan.');
+  }
+
+  document.getElementById('loginSubmitBtn').onclick = async ()=>{
+    clearLoginError();
+    const rawPhone = document.getElementById('loginPhone').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const name = document.getElementById('loginName').value.trim();
+    if (!rawPhone || !password){ showLoginError('Isi nomor HP dan kata sandi.'); return; }
+    if (password.length < 6){ showLoginError('Kata sandi minimal 6 karakter.'); return; }
+    const phone = normalizePhone(rawPhone);
+    const syntheticEmail = phoneToSyntheticEmail(phone);
+    const btn = document.getElementById('loginSubmitBtn');
+    btn.disabled = true;
+    try {
+      if (loginMode === 'up'){
+        const credential = EmailAuthProvider.credential(syntheticEmail, password);
+        await linkWithCredential(auth.currentUser, credential);
+        currentProfile = { name: name || null, phone };
+        await setDoc(userDocRef(), { profile: currentProfile }, { merge: true });
+        updateLoginUI(auth.currentUser);
+        showToast('Berhasil daftar, progres kamu tersambung ke nomor ini','win');
+        closeAllPanels();
+      } else {
+        await signInWithEmailAndPassword(auth, syntheticEmail, password);
+        closeAllPanels();
+      }
+    } catch(err){
+      if (err.code === 'auth/credential-already-in-use' || err.code === 'auth/email-already-in-use'){
+        showLoginError('Nomor HP ini sudah terdaftar — beralih ke menu Masuk...', true);
+        setTimeout(()=>{ document.getElementById('loginTabIn').click(); }, 1000);
+      } else {
+        showLoginError(loginErrorMessage(err));
+      }
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  function doPhoneLogout(){
+    closeAllPanels();
+    signOut(auth).then(()=>{
+      showToast('Berhasil keluar dari nomor HP ini','win');
+    }).catch(()=>{ showToast('Gagal keluar','lose'); });
+  }
+  document.getElementById('phoneLogoutBtn').onclick = doPhoneLogout;
+  document.getElementById('acctLogoutBtn').onclick = doPhoneLogout;
+  document.getElementById('acctGoLoginBtn').onclick = ()=>{ closeAllPanels(); openPanel(document.getElementById('loginSheet')); };
+
+  document.getElementById('menuLoginItem').onclick = ()=>{ closeAllPanels(); openPanel(document.getElementById('loginSheet')); };
+
+  function updateLoginUI(user){
+    const loggedInBox = document.getElementById('loggedInBox');
+    const loginFormBox = document.getElementById('loginFormBox');
+    const menuItem = document.getElementById('menuLoginItem');
+    const acctIn = document.getElementById('acctLoginStatusIn');
+    const acctOut = document.getElementById('acctLoginStatusOut');
+    if (user && !user.isAnonymous){
+      const phone = currentProfile.phone || '';
+      const displayPhone = phone ? '+' + phone : (user.email||'').split('@')[0];
+      loggedInBox.style.display = 'block';
+      loginFormBox.style.display = 'none';
+      document.getElementById('loggedInPhone').textContent = displayPhone;
+      menuItem.innerHTML = '🔑&nbsp;&nbsp;Akun HP Tersambung';
+      acctIn.style.display = 'block';
+      acctOut.style.display = 'none';
+      document.getElementById('acctLoginPhone').textContent = displayPhone;
+    } else {
+      loggedInBox.style.display = 'none';
+      loginFormBox.style.display = 'block';
+      menuItem.innerHTML = '🔑&nbsp;&nbsp;Masuk / Daftar (Nomor HP)';
+      acctIn.style.display = 'none';
+      acctOut.style.display = 'block';
+    }
+  }
+
+  function resetLocalState(){
+    accountType = 'demo';
+    currency = 'IDR';
+    balances = { IDR: { demo: 9999920, real: 0 }, USC: { demo: 999.88, real: 0 } };
+    amounts = { IDR: 10000, USC: 0.12 };
+    amount = amounts[currency];
+    currentTF = '5s';
+    tfSeconds = 5;
+    waktuSeconds = tfSeconds;
+    appSettings = { confirmTrade: false, vibrate: true };
+    openTrades = [];
+    closedTrades = [];
+    tradeCounter = 0;
+    currentPairIdx = 0;
+    selectPair(0);
+    updateWaktu();
+    applySettingsUI();
+    refreshBalanceUI();
+    updateEarnings();
+    updateOpenTradesUI();
+    renderHistory();
+    document.getElementById('accTypeLabel').textContent = accountType;
+    document.getElementById('accDemoOpt').classList.add('selected');
+    document.getElementById('accRealOpt').classList.remove('selected');
+    closeAllPanels();
+  }
+
+})();
+</script>
+</body>
+</html>
