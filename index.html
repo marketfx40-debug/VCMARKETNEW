@@ -60,6 +60,8 @@
   .stepper-center { text-align:center; flex:1; }
   .stepper-label { font-size:11px; color:#8b93a7; }
   .stepper-value { font-size:15px; font-weight:700; color:#fff; }
+  .jumlah-input { background:transparent; border:none; color:#fff; font-size:15px; font-weight:700; width:92px; text-align:center; outline:none; font-family:inherit; padding:0; }
+  .jumlah-input:focus { color:#6fa0ff; }
   .earnings-row { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:12px; font-size:14px; color:#8b93a7; }
   .earnings-pct { color:#26a969; font-weight:700; }
   .earnings-amt { color:#fff; font-weight:700; font-size:16px; }
@@ -214,7 +216,7 @@
         <button id="jumlahMinus">−</button>
         <div class="stepper-center">
           <div class="stepper-label">Jumlah</div>
-          <div class="stepper-value"><span class="cur-symbol">Rp</span><span id="jumlahValue">10.000</span></div>
+          <div class="stepper-value"><span class="cur-symbol">Rp</span><input type="text" inputmode="decimal" id="jumlahValue" class="jumlah-input" value="10.000"></div>
         </div>
         <button id="jumlahPlus">+</button>
       </div>
@@ -705,12 +707,35 @@
 
   function updateEarnings(){
     document.getElementById('earningsAmt').textContent = fmtBalance(amount*payout);
-    document.getElementById('jumlahValue').textContent = fmtBalance(amount);
+    document.getElementById('jumlahValue').value = fmtBalance(amount);
     document.getElementById('earningsPct').textContent = '+'+Math.round(payout*100)+'%';
   }
   document.getElementById('jumlahPlus').onclick=()=>{ amount=roundAmount(amount+amountStep()); amounts[currency]=amount; updateEarnings(); saveSettings(); };
   document.getElementById('jumlahMinus').onclick=()=>{ amount=Math.max(minAmount(),roundAmount(amount-amountStep())); amounts[currency]=amount; updateEarnings(); saveSettings(); };
   updateEarnings();
+
+  // Jumlah entry: bisa diketik langsung, bukan cuma tombol +/-
+  function parseAmountInput(str){
+    if (currency === 'USC'){
+      const v = parseFloat(String(str).replace(',', '.').replace(/[^0-9.]/g,''));
+      return isNaN(v) ? amount : v;
+    }
+    const v = parseInt(String(str).replace(/[^0-9]/g,''), 10);
+    return isNaN(v) ? amount : v;
+  }
+  const jumlahInput = document.getElementById('jumlahValue');
+  jumlahInput.addEventListener('focus', ()=>{
+    jumlahInput.value = currency === 'USC' ? amount.toFixed(2) : String(Math.round(amount));
+    jumlahInput.select();
+  });
+  jumlahInput.addEventListener('keydown', (e)=>{ if (e.key==='Enter') jumlahInput.blur(); });
+  jumlahInput.addEventListener('blur', ()=>{
+    const parsed = parseAmountInput(jumlahInput.value);
+    amount = Math.max(minAmount(), roundAmount(parsed));
+    amounts[currency] = amount;
+    updateEarnings();
+    saveSettings();
+  });
 
   function saveSettings(){
     if (!userId) return;
@@ -1270,10 +1295,11 @@
     }
   };
 
-  // ---- Mode maintenance: status disimpan di app_config/status, diubah manual
-  // lewat Firebase Console (koleksi app_config, dokumen status, field maintenance & message).
-  // Terpantau real-time via onSnapshot, jadi begitu diubah di Console, semua
-  // pengguna yang sedang buka aplikasi langsung ikut ter-update. ----
+  // ---- Mode maintenance & Logo aplikasi: keduanya disimpan di app_config/status,
+  // diubah manual lewat Firebase Console (koleksi app_config, dokumen status,
+  // field maintenance, message, dan logoUrl). Terpantau real-time via onSnapshot,
+  // jadi begitu diubah di Console, semua pengguna yang sedang buka aplikasi
+  // langsung ikut ter-update tanpa perlu update kode atau refresh manual. ----
   const maintenanceRef = doc(dbFs, 'app_config', 'status');
   function setMaintenanceMode(active, message){
     maintenanceActive = active;
@@ -1283,12 +1309,32 @@
     document.getElementById('btnUp').disabled = active;
     document.getElementById('btnDown').disabled = active;
   }
+  function setAppLogo(url){
+    const logoEls = document.querySelectorAll('.logo');
+    logoEls.forEach(el=>{
+      if (url){
+        el.style.backgroundImage = `url("${url}")`;
+        el.style.backgroundSize = 'cover';
+        el.style.backgroundPosition = 'center';
+        el.style.clipPath = 'none';
+        el.style.borderRadius = '7px';
+      } else {
+        el.style.backgroundImage = '';
+        el.style.backgroundSize = '';
+        el.style.backgroundPosition = '';
+        el.style.clipPath = '';
+        el.style.borderRadius = '';
+      }
+    });
+  }
   onSnapshot(maintenanceRef, (snap)=>{
     if (snap.exists()){
       const d = snap.data();
       setMaintenanceMode(!!d.maintenance, d.message || 'Aplikasi sedang dalam perbaikan. Trading sementara dinonaktifkan.');
+      setAppLogo(d.logoUrl || '');
     } else {
       setMaintenanceMode(false, '');
+      setAppLogo('');
     }
   }, ()=>{ /* offline/no permission: biarkan trading tetap jalan seperti biasa */ });
 
