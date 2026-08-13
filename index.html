@@ -12,6 +12,16 @@
   .topbar { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:#151a26; z-index:5; }
   .maintenance-banner { display:none; align-items:center; gap:8px; background:#3a2410; border-bottom:1px solid #e8b93b; color:#f5d47a; font-size:12px; padding:9px 14px; }
   .maintenance-banner.show { display:flex; }
+
+  .event-popup-overlay { position:fixed; inset:0; max-width:480px; margin:0 auto; background:rgba(0,0,0,0.7); z-index:90; display:none; align-items:center; justify-content:center; padding:20px; }
+  .event-popup-overlay.show { display:flex; }
+  .event-popup-card { width:100%; max-width:360px; background:#1b2233; border-radius:16px; overflow:hidden; position:relative; }
+  .event-popup-close { position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:50%; background:rgba(0,0,0,0.55); color:#fff; border:none; font-size:16px; cursor:pointer; z-index:2; display:flex; align-items:center; justify-content:center; }
+  .event-popup-img { width:100%; display:block; max-height:320px; object-fit:cover; background:#20263a; }
+  .event-popup-body { padding:16px 18px 18px; }
+  .event-popup-title { font-size:17px; font-weight:800; color:#fff; margin-bottom:6px; }
+  .event-popup-msg { font-size:13px; color:#c6cbdb; line-height:1.5; white-space:pre-line; }
+  .event-popup-btn { width:100%; margin-top:14px; background:#2f6fed; color:#fff; border:none; padding:12px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; }
   .topbar-left { display:flex; align-items:center; gap:14px; }
   .hamburger { width:22px; display:flex; flex-direction:column; gap:5px; cursor:pointer; }
   .hamburger span { display:block; height:2px; background:#9aa3b5; border-radius:2px; }
@@ -147,6 +157,18 @@
 </head>
 <body>
 <div id="app">
+
+  <div class="event-popup-overlay" id="eventPopupOverlay">
+    <div class="event-popup-card">
+      <button class="event-popup-close" id="eventPopupClose">✕</button>
+      <img class="event-popup-img" id="eventPopupImg" src="" alt="Event">
+      <div class="event-popup-body">
+        <div class="event-popup-title" id="eventPopupTitle"></div>
+        <div class="event-popup-msg" id="eventPopupMsg"></div>
+        <button class="event-popup-btn" id="eventPopupOk">Oke, Mengerti</button>
+      </div>
+    </div>
+  </div>
 
   <div class="maintenance-banner" id="maintenanceBanner">🔧&nbsp;<span id="maintenanceMsg">Aplikasi sedang dalam perbaikan. Trading sementara dinonaktifkan.</span></div>
 
@@ -1328,15 +1350,105 @@
     });
   }
   onSnapshot(maintenanceRef, (snap)=>{
+    console.log('[app_config] snapshot diterima, exists:', snap.exists(), snap.exists() ? snap.data() : null);
     if (snap.exists()){
       const d = snap.data();
       setMaintenanceMode(!!d.maintenance, d.message || 'Aplikasi sedang dalam perbaikan. Trading sementara dinonaktifkan.');
       setAppLogo(d.logoUrl || '');
     } else {
+      console.warn('[app_config] Dokumen app_config/status belum ada di Firestore.');
       setMaintenanceMode(false, '');
       setAppLogo('');
     }
-  }, ()=>{ /* offline/no permission: biarkan trading tetap jalan seperti biasa */ });
+  }, (err)=>{
+    console.error('[app_config] Gagal memantau status maintenance:', err.code, err.message);
+  });
+
+  // ---- Popup Event (mis. "Semarak Agustus + Bonus"): disimpan di app_config/popup,
+  // diatur lewat menu "Kelola Event" di dashboard manager (binary_monitor.html),
+  // atau manual lewat Firestore Console. Muncul sekali tiap kali app dibuka
+  // selama field "active" bernilai true dan "imageUrl" terisi. ----
+  const eventPopupRef = doc(dbFs, 'app_config', 'popup');
+  let eventPopupShownThisLoad = false;
+  function showEventPopup(d){
+    if (eventPopupShownThisLoad) return;
+    eventPopupShownThisLoad = true;
+    document.getElementById('eventPopupImg').src = d.imageUrl;
+    document.getElementById('eventPopupTitle').textContent = d.title || '';
+    document.getElementById('eventPopupTitle').style.display = d.title ? 'block' : 'none';
+    document.getElementById('eventPopupMsg').textContent = d.message || '';
+    document.getElementById('eventPopupMsg').style.display = d.message ? 'block' : 'none';
+    document.getElementById('eventPopupOverlay').classList.add('show');
+  }
+  function closeEventPopup(){
+    document.getElementById('eventPopupOverlay').classList.remove('show');
+  }
+  document.getElementById('eventPopupClose').onclick = closeEventPopup;
+  document.getElementById('eventPopupOk').onclick = closeEventPopup;
+  document.getElementById('eventPopupOverlay').onclick = (e)=>{ if (e.target.id==='eventPopupOverlay') closeEventPopup(); };
+  onSnapshot(eventPopupRef, (snap)=>{
+    if (snap.exists()){
+      const d = snap.data();
+      if (d.active && d.imageUrl) showEventPopup(d);
+    }
+  }, (err)=>{
+    console.error('[app_config/popup] Gagal memuat event:', err.code, err.message);
+  });
+
+  // ---- Event Pasar (mis. FOMC, breaking news): dipicu lewat dashboard manager
+  // (binary_monitor.html) → tombol "Picu Event Sekarang". Dokumen ini otomatis
+  // terbentuk di Firestore begitu event pertama kali dipicu dari manager —
+  // tidak perlu bikin koleksi/dokumen manual. Setiap pemicu punya "eventId" unik,
+  // jadi begitu berubah, semua user yang sedang buka app langsung ikut lihat
+  // pergerakan harganya, tanpa replay event lama saat baru buka halaman.
+  const marketEventRef = doc(dbFs, 'app_config', 'market_event');
+  let marketEventInitialized = false;
+  let lastMarketEventId = null;
+  let marketEventTimer = null;
+  function triggerMarketEvent(ev){
+    const label = ev.label || 'Event Pasar';
+    const direction = ev.direction === 'down' ? 'down' : 'up';
+    const intensity = Math.min(10, Math.max(1, Number(ev.intensity) || 5));
+    const durationSeconds = Math.min(60, Math.max(3, Number(ev.durationSeconds) || 15));
+    const pctMove = intensity * 0.5; // 0.5% (intensitas 1) s/d 5% (intensitas 10)
+    const basePrice = currentPrice;
+    const finalPrice = direction === 'up' ? basePrice * (1 + pctMove/100) : basePrice * (1 - pctMove/100);
+
+    showToast(`⚡ ${label}: harga bergerak ${direction==='up'?'NAIK':'TURUN'} tajam!`, direction==='up'?'win':'lose');
+
+    if (marketEventTimer) clearInterval(marketEventTimer);
+    const tickMs = 400;
+    const steps = Math.max(6, Math.round((durationSeconds*1000)/tickMs));
+    let stepCount = 0;
+    marketEventTimer = setInterval(()=>{
+      stepCount++;
+      const progress = Math.min(1, stepCount/steps);
+      const eased = 1 - Math.pow(1-progress, 2); // ease-out biar melambat menjelang akhir
+      const noise = (Math.random()-0.5) * basePrice * 0.0015;
+      targetPrice = basePrice + (finalPrice-basePrice)*eased + noise;
+      if (progress >= 1){
+        clearInterval(marketEventTimer);
+        marketEventTimer = null;
+      }
+    }, tickMs);
+  }
+  onSnapshot(marketEventRef, (snap)=>{
+    if (!snap.exists()) return;
+    const d = snap.data();
+    if (!marketEventInitialized){
+      // snapshot pertama saat halaman baru dibuka — catat eventId yang sudah
+      // ada tanpa memutar ulang efeknya, supaya event lama tidak terus terpicu.
+      marketEventInitialized = true;
+      lastMarketEventId = d.eventId || null;
+      return;
+    }
+    if (d.eventId && d.eventId !== lastMarketEventId){
+      lastMarketEventId = d.eventId;
+      triggerMarketEvent(d);
+    }
+  }, (err)=>{
+    console.error('[app_config/market_event] Gagal memuat event pasar:', err.code, err.message);
+  });
 
   // ---- Firebase: masuk otomatis secara anonim, Firebase hanya dipakai untuk
   // menyimpan progres (saldo, riwayat, pengaturan) per perangkat, tanpa layar login.
